@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chess Game with Legal Moves</title>
+  <style>
+    body {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      background-color: #333;
+    }
+    #board {
+      display: grid;
+      grid-template-columns: repeat(8, 60px);
+      grid-template-rows: repeat(8, 60px);
+      border: 4px solid #000;
+    }
+    .square {
+      width: 60px;
+      height: 60px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      font-size: 36px;
+      cursor: pointer;
+    }
+    .white {
+      background-color: #eee;
+    }
+    .black {
+      background-color: #444;
+      color: #fff;
+    }
+    .selected {
+      outline: 3px solid yellow;
+    }
+    .highlight {
+      outline: 3px solid green;
+    }
+  </style>
+</head>
+<body>
+  <div id="board"></div>
+  <script>
+    const board = document.getElementById('board');
+    const pieces = {
+      r: '♜', n: '♞', b: '♝', q: '♛', k: '♚', p: '♟',
+      R: '♖', N: '♘', B: '♗', Q: '♕', K: '♔', P: '♙'
+    };
+
+    let selected = null;
+    let squares = [];
+    let currentPlayer = 'white';
+
+    const initialBoard = [
+      ['r','n','b','q','k','b','n','r'],
+      ['p','p','p','p','p','p','p','p'],
+      ['','','','','','','',''],
+      ['','','','','','','',''],
+      ['','','','','','','',''],
+      ['','','','','','','',''],
+      ['P','P','P','P','P','P','P','P'],
+      ['R','N','B','Q','K','B','N','R']
+    ];
+
+    function drawBoard() {
+      board.innerHTML = '';
+      squares = [];
+      for (let row = 0; row < 8; row++) {
+        for (let col = 0; col < 8; col++) {
+          const square = document.createElement('div');
+          square.classList.add('square');
+          square.classList.add((row + col) % 2 === 0 ? 'white' : 'black');
+          square.dataset.row = row;
+          square.dataset.col = col;
+
+          const piece = initialBoard[row][col];
+          if (piece) square.textContent = pieces[piece];
+
+          square.addEventListener('click', () => handleClick(row, col));
+
+          board.appendChild(square);
+          squares.push(square);
+        }
+      }
+    }
+
+    function isWhitePiece(piece) {
+      return piece === piece.toUpperCase();
+    }
+
+    function isLegalMove(fromRow, fromCol, toRow, toCol) {
+      const piece = initialBoard[fromRow][fromCol];
+      const target = initialBoard[toRow][toCol];
+      const direction = isWhitePiece(piece) ? -1 : 1;
+
+      switch (piece.toLowerCase()) {
+        case 'p':
+          if (fromCol === toCol && !target) {
+            if (toRow === fromRow + direction) return true;
+            if ((isWhitePiece(piece) && fromRow === 6 || !isWhitePiece(piece) && fromRow === 1) && toRow === fromRow + 2 * direction && !initialBoard[fromRow + direction][fromCol]) return true;
+          } else if (Math.abs(fromCol - toCol) === 1 && toRow === fromRow + direction && target && isWhitePiece(piece) !== isWhitePiece(target)) {
+            return true;
+          }
+          break;
+        case 'r':
+          if (fromRow === toRow || fromCol === toCol) return isPathClear(fromRow, fromCol, toRow, toCol);
+          break;
+        case 'n':
+          return (Math.abs(fromRow - toRow) === 2 && Math.abs(fromCol - toCol) === 1) ||
+                 (Math.abs(fromRow - toRow) === 1 && Math.abs(fromCol - toCol) === 2);
+        case 'b':
+          if (Math.abs(fromRow - toRow) === Math.abs(fromCol - toCol)) return isPathClear(fromRow, fromCol, toRow, toCol);
+          break;
+        case 'q':
+          if (fromRow === toRow || fromCol === toCol || Math.abs(fromRow - toRow) === Math.abs(fromCol - toCol)) return isPathClear(fromRow, fromCol, toRow, toCol);
+          break;
+        case 'k':
+          return Math.abs(fromRow - toRow) <= 1 && Math.abs(fromCol - toCol) <= 1;
+      }
+      return false;
+    }
+
+    function isPathClear(fromRow, fromCol, toRow, toCol) {
+      const rowStep = Math.sign(toRow - fromRow);
+      const colStep = Math.sign(toCol - fromCol);
+      let row = fromRow + rowStep;
+      let col = fromCol + colStep;
+
+      while (row !== toRow || col !== toCol) {
+        if (initialBoard[row][col]) return false;
+        row += rowStep;
+        col += colStep;
+      }
+      const target = initialBoard[toRow][toCol];
+      if (target && isWhitePiece(initialBoard[fromRow][fromCol]) === isWhitePiece(target)) return false;
+      return true;
+    }
+
+    function handleClick(row, col) {
+      const piece = initialBoard[row][col];
+
+      if (selected) {
+        const [prevRow, prevCol] = selected;
+        const selectedPiece = initialBoard[prevRow][prevCol];
+        if (isLegalMove(prevRow, prevCol, row, col)) {
+          initialBoard[row][col] = selectedPiece;
+          initialBoard[prevRow][prevCol] = '';
+          selected = null;
+          currentPlayer = currentPlayer === 'white' ? 'black' : 'white';
+          drawBoard();
+        } else {
+          selected = null;
+          drawBoard();
+        }
+      } else if (piece && (currentPlayer === 'white') === isWhitePiece(piece)) {
+        selected = [row, col];
+        highlightSelected(row, col);
+      }
+    }
+
+    function highlightSelected(row, col) {
+      drawBoard();
+      const index = row * 8 + col;
+      squares[index].classList.add('selected');
+    }
+
+    drawBoard();
+  </script>
+</body>
+</html>
